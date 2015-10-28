@@ -383,9 +383,12 @@ class ScalaSig {
     static ScalaSig parse(byte[] in) throws CtxException {
         ByteArrayInputStream bis = new ByteArrayInputStream(in);
 
-        // Pull version info
+        // Pull version info & check OK
         int major = Nat.read(bis);
         int minor = Nat.read(bis);
+        if (major!=5 || minor!=0) {
+            throw new CtxException("Unexpected signature version found: "+major+"."+minor);
+        }
 
         // Pull table
         int tblEntries = Nat.read(bis);

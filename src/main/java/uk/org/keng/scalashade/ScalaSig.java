@@ -157,7 +157,11 @@ class Table {
      */
     private void updateClassRef(ExtModClassRefEntry ref, String[] with) {
         entries.add(new TermNameEntry(with[with.length - 1]));
-        ref.update(entries.size() - 1, addClassRef(Arrays.copyOf(with, with.length - 1)));
+        int termRef = entries.size()-1;
+        int symbolRef = -1;
+        if (with.length>1)
+            symbolRef = addClassRef(Arrays.copyOf(with, with.length - 1));
+        ref.update(termRef, symbolRef);
     }
 
     /**

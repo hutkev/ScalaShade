@@ -17,20 +17,27 @@
 package uk.org.keng.scalashade;
 
 /**
- * This encoding/decoding is based on http://lampwww.epfl.ch/~dubochet/new_pickle.pdf. It is used in the ScalaSignature
- * class annotation to encode type information. An implementation of the encoding can be found in
- * scala.reflect.internal.pickling.Encoding
+ * This encoding/decoding is based on SIP-10.
+ * http://www.scala-lang.org/old/sites/default/files/sids/dubochet/Mon,%202010-05-31,%2015:25/Storage%20of%20pickled%20Scala%20signatures%20in%20class%20files.pdf
  * <p/>
- * Briefly encoding is:
+ * It is used in the ScalaSignatureclass annotation to encode type information. An implementation of the encoding can
+ * be found in scala.reflect.internal.pickling.ByteCodecs.
+ * <p/>
+ * WARNING: There is an difference between the SIP-10 description and the implementation. As implemented the encoding
+ * adds 1 to each byte but does not encode 0 as the sequence 0xC0 0x80. The ByteCodecs implementation handles this when
+ * reading, but when encoding the compiler uses encode8to7 but bypasses avoidZero. See BCodeHelpers.scala for real
+ * encoding.
+ * <p/>
+ * Actual encoding is:
  * 1. Encode input bytes into bytes using only 7-bits to give 0 to 127 range
- * 2. Add 1 to encoded bytes and then replace any 0 by 0xc0 0x80 to remove 0 from encoding
+ * 2. Add 1 to encoded bytes modulo 0x7f, so 0 become 1, etc to 0x7f = 0
  * 3. Convert bytes to string
  */
 
 class Encoding {
 
     /**
-     * Test a string to see if it is a valid encoding, i.e. has character in correct range
+     * Test a string to see if it is a valid encoding, i.e. has characters in correct range
      *
      * @param encoded the string to test
      * @return true is valid
@@ -38,17 +45,8 @@ class Encoding {
     public static boolean isValidEncoding(String encoded) {
         for (int charIndex = 0; charIndex < encoded.length(); charIndex++) {
             char c = encoded.charAt(charIndex);
-            //noinspection StatementWithEmptyBody
-            if (c < 128) {
-                // OK, normal 7-bit character
-            } else {
-                if (c == 0xc0 && charIndex + 1 < encoded.length() && encoded.charAt(charIndex + 1) == 0x80) {
-                    // OK, sequence for 0
-                    charIndex++;
-                } else {
-                    // Everything else is illegal
-                    return false;
-                }
+            if (c >= 128) {
+                return false;
             }
         }
         return true;
@@ -71,13 +69,7 @@ class Encoding {
         // Encode that in String
         StringBuilder sb = new StringBuilder();
         for (byte b : encoded) {
-            char c = (char) ((b + 1) & 0x7F);
-            if (c != 0) {
-                sb.append(c);
-            } else {
-                sb.append((char) 0xc0);
-                sb.append((char) 0x80);
-            }
+            sb.append((char) ((b + 1) & 0x7F));
         }
         return sb.toString();
     }
@@ -98,12 +90,8 @@ class Encoding {
             if (c < 128) {
                 input[byteIndex++] = (byte) ((c - 1) & 0x7F);
             } else {
-                if (c == 0xc0 && charIndex + 1 < encoded.length() && encoded.charAt(charIndex + 1) == 0x80) {
-                    input[byteIndex++] = 0;
-                    charIndex++;
-                } else {
-                    return null;
-                }
+                // Illegal char
+                return null;
             }
         }
 
@@ -148,8 +136,8 @@ class Encoding {
      * Encode a byte into an encoded byte array
      *
      * @param buffer the encoded data, this must be at least encodeLength(input.length) in size
-     * @param at the ordinal of the 8-bit value to be set, 0 to input.length
-     * @param value the value to encode into the array
+     * @param at     the ordinal of the 8-bit value to be set, 0 to input.length
+     * @param value  the value to encode into the array
      */
     private static void encodeByte(byte[] buffer, int at, byte value) {
         // Calc encoded start byte and how many low bits encoded

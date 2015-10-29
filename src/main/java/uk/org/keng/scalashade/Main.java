@@ -34,6 +34,7 @@ public class Main {
         Options options = new Options();
         options.addOption("h", "help", false, "help");
         options.addOption("v", "verbose", false, "logs classes being modified");
+        options.addOption("d", "debug", false, "dump entry table when handling a class");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd;
         try {
@@ -51,6 +52,7 @@ public class Main {
 
         // Set parameters/flags
         boolean verbose = cmd.hasOption("v");
+        boolean debug = cmd.hasOption("d");
         String in = cmd.getArgList().get(0);
         String out = cmd.getArgList().get(1);
         String from = cmd.getArgList().get(2);
@@ -62,10 +64,15 @@ public class Main {
             try {
                 ScalaSigClass sigClass = new ScalaSigClass(in);
                 ScalaSig sig = sigClass.getSig();
+                if (sig!=null && debug) {
+                    System.err.println(sig.toString());
+                }
                 if (sig != null && sig.replace(from, to) > 0) {
                     sigClass.writeTo(out);
                     if (verbose)
                         System.out.println("Modified:  " + in);
+                    if (debug)
+                        System.err.println(sig.toString());
                 } else {
                     FileUtil.copyFile(inFile, new File(out));
                 }

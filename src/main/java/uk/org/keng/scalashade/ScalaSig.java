@@ -218,7 +218,7 @@ class RawEntry implements TableEntry {
      * @throws IOException
      */
     public void write(ByteArrayOutputStream bos) throws IOException {
-        Nat.write(type, bos);
+        bos.write(type);
         Nat.write(raw.length, bos);
         bos.write(raw);
     }
@@ -295,7 +295,7 @@ class ExtModClassRefEntry implements TableEntry {
      * @throws IOException
      */
     public void write(ByteArrayOutputStream bos) throws IOException {
-        Nat.write(TblTypeID.EXT_MOD_CLASS_REF_ID, bos);
+        bos.write(TblTypeID.EXT_MOD_CLASS_REF_ID);
         if (_symbolRef != -1) {
             Nat.write(Nat.size(_nameRef)+Nat.size(_symbolRef), bos);
             Nat.write(_nameRef, bos);
@@ -344,7 +344,7 @@ class TermNameEntry implements TableEntry {
      * @throws IOException
      */
     public void write(ByteArrayOutputStream bos) throws IOException {
-        Nat.write(TblTypeID.TERM_NAME_ID, bos);
+        bos.write(TblTypeID.TERM_NAME_ID);
         byte[] bytes = _name.getBytes(StandardCharsets.UTF_8);
         Nat.write(bytes.length, bos);
         bos.write(bytes);
@@ -398,7 +398,7 @@ class ScalaSig {
         int tblEntries = Nat.read(bis);
         Table table = new Table();
         for (int e = 0; e < tblEntries; e++) {
-            int type = Nat.read(bis);
+            int type = bis.read();
             int size = Nat.read(bis);
             byte[] raw = new byte[size];
             if (bis.read(raw, 0, size) != size) {

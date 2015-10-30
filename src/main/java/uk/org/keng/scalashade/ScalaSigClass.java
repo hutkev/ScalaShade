@@ -82,7 +82,9 @@ class ScalaSigClass {
         if (_clazz.visibleAnnotations != null) {
             //noinspection unchecked
             for (AnnotationNode an : visibleAnnotations(_clazz)) {
-                if (an.desc.equals("Lscala/reflect/ScalaSignature;")) {
+                if (an.desc.equals("Lscala/reflect/ScalaLongSignature;")) {
+                    throw new CtxException("Found *long* ScalaSignature, these are not currently supported");
+                } else if (an.desc.equals("Lscala/reflect/ScalaSignature;")) {
                     if (sigAnnotation != -1)
                         throw new CtxException("Multiple ScalaSignature annotations found in: " + path);
                     if (an.values.size() != 2)
@@ -139,7 +141,7 @@ class ScalaSigClass {
     public byte[] getBytes() {
         // Update annotation
         if (sigAnnotation != -1) {
-            ( visibleAnnotations(_clazz).get(sigAnnotation)).values.set(1, Encoding.encode(sig.asBytes()));
+            setAnnotation(_clazz, sigAnnotation, Encoding.encode(sig.asBytes()));
         }
 
         // Convert to byte code
@@ -148,8 +150,13 @@ class ScalaSigClass {
         return cw.toByteArray();
     }
 
-    @SuppressWarnings("Unchecked")
-    List<AnnotationNode> visibleAnnotations(ClassNode clazz) {
+    @SuppressWarnings("unchecked")
+    private static List<AnnotationNode> visibleAnnotations(ClassNode clazz) {
         return (List<AnnotationNode>)clazz.visibleAnnotations;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void setAnnotation(ClassNode clazz, int index, String content) {
+        visibleAnnotations(clazz).get(index).values.set(1, content);
     }
 }
